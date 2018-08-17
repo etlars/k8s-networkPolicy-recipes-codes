@@ -1,0 +1,38 @@
+
+DENY all traffic to an application
+
+Run a nginx Pod with labels app=web and expose it at port 80:
+
+   kubectl run web --image=nginx --labels app=web --expose --port 80
+   
+Run a temporary Pod and make a request to web Service:
+
+   $ kubectl run --rm -i -t --image=alpine test-$RANDOM -- sh
+   / # wget -qO- http://web
+   
+web-deny-all.yaml:
+
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: web-deny-all
+spec:
+  podSelector:
+    matchLabels:
+      app: web
+  ingress: []   
+  
+  kubectl apply -f web-deny-all.yaml
+  
+
+Run a test container again, and try to query web:
+
+   $ kubectl run --rm -i -t --image=alpine test-$RANDOM -- sh
+   / # wget -qO- --timeout=2 http://web
+   wget: download timed out
+
+
+Cleanup
+   kubectl delete deploy web
+   kubectl delete service web
+   kubectl delete networkpolicy web-deny-all
